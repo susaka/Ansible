@@ -1,0 +1,33 @@
+---
+
+- name: setup gameservers
+  hosts: GameServers
+  gather_facts: false
+
+  tasks:
+  - name: create user
+    user: 
+      name: serveruser
+      state: present
+      
+  - name: download lgsm script
+    get_url:
+      dest: /home/serveruser/linuxgsm.sh
+      url: https://linuxgsm.sh
+      mode: 0744
+      owner: serveruser
+
+  - name: run lgsm script
+    become: yes
+    become_user: serveruser
+    shell: "cd /home/serveruser && bash linuxgsm.sh {{game_type}}"
+
+  - name: run installer
+    become: yes
+    become_user: serveruser  
+    shell: "cd /home/serveruser && ./{{game_type}} auto-install"
+
+  - name: start server
+    become: yes
+    become_user: serveruser
+    shell: "cd /home/serveruser && ./{{game_type}} start"

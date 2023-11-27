@@ -1,0 +1,27 @@
+---
+
+- name: Create Container
+  community.general.proxmox:
+    vmid: '105'
+    node: 'PVE01'
+    api_user: 'root@pam'
+    api_password: 'THr98kdd1!'
+    api_host: PVE01.s51.dk
+    password: 123456
+    hostname: "{{inventory_hostname}}"
+    ostemplate: 'local:vztmpl/ubuntu-14.04-x86_64.tar.gz'
+    netif: '{"net0":"name=eth0,gw=192.168.0.1,ip=192.168.0.2/24,bridge=vmbr0"}'
+    nameserver: 
+    cores:
+    cpus:
+    memory:
+    disk:
+    pubkey:
+    state:
+
+#- name: enable SSH on container
+#  command: "{{ item }}"
+#  with_items:
+#    - "pct exec {{ vmid }} -- systemctl disable ssh.socket"
+#    - "pct exec {{ vmid }} -- systemctl enable ssh.service"
+#    - "pct exec {{ vmid }} -- systemctl start ssh"

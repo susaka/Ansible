@@ -1,0 +1,54 @@
+---
+- hosts: ubuntu2204
+  gather_facts: false
+  tasks:
+  - name: update
+    apt:
+      update_cache: yes
+      cache_valid_time: 86400
+      upgrade: safe
+
+  - name: Check if i386 is enabled
+    shell: dpkg --print-foreign-architectures | grep i386
+    register: result_i386_check
+    changed_when: result_i386_check.rc == 1
+    failed_when: result_i386_check.rc > 1
+    when: inventory_hostname in groups['GameServers']
+
+  - name: Enable i386 architecture
+    command: dpkg --add-architecture i386
+    when: inventory_hostname in groups['GameServers'] and result_i386_check.rc == 1
+
+  - name: Install apt software
+    apt:
+      update_cache: yes
+      name: "{{item}}"
+      state: present
+    loop: "{{ Apt_List |flatten(levels=1) }}"
+    when: Apt_List is defined
+
+  - name: Install pip software
+    pip:
+      name: "{{item}}"
+    loop: "{{ Pip_List |flatten(levels=1) }}"
+    when: Pip_List is defined
+
+  - name: create user
+    user: 
+      name: serveruser
+      state: present
+    when: inventory_hostname in groups['GameServers']
+      
+  - name: download lgsm script
+    get_url:
+      dest: /home/serveruser/linuxgsm.sh
+      url: https://linuxgsm.sh
+      mode: 0744
+      owner: serveruser
+    when: inventory_hostname in groups['GameServers']
+
+  - name: run lgsm script
+    become: yes
+    become_user: serveruser
+    shell: "cd /home/serveruser && bash linuxgsm.sh {{game_type}}"
+    when: inventory_hostname in groups['GameServers']
