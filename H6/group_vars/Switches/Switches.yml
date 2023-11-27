@@ -1,0 +1,6 @@
+---
+dev_mang_int: 
+- Vlan5
+
+ntp_source: ntp source vlan5
+radius_source: ip radius source-interface Vlan5

@@ -1,0 +1,21 @@
+---
+
+#Connection credientials - opsæt på alle enheder
+ansible_network_os: ios
+ansible_connection: network_cli
+ansible_user: ansible
+ansible_ssh_pass: "{{ vault_ssh_pass }}"
+ansible_become: yes
+ansible_become_method: enable
+ansible_become_password: "{{ vault_become_password }}"
+
+#Syslog server
+log_host: 10.255.0.70
+
+#NTP server
+NTP_Network_host: 
+  - ntp server 10.0.0.1
+
+#Radius
+radius_host: 10.255.0.40
+radius_shared_secret: "{{ vault_radius_shared_secret }}"

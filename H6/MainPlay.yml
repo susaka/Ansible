@@ -1,0 +1,65 @@
+---
+
+- name: Setup of generel parametres on Cisco devices
+  hosts: Network
+  gather_facts: false
+  roles:
+    - system
+  tags:
+    - system
+
+- name: Setup time configuration on Cisco devices
+  hosts: Network
+  gather_facts: false
+  roles:
+    - NTP
+  tags:
+    - NTP
+
+- name: Setup of Cisco Switches
+  hosts: Switches
+  gather_facts: false
+  roles:
+    - VLANS
+  tags:
+    - VLANS
+
+- name: Setup SNMP on network devices
+  hosts: Network
+  gather_facts: false
+  roles:
+    - SNMP
+  tags:
+    - SNMP
+
+- name: Save final config on Cisco devices
+  hosts: Network
+  gather_facts: false
+  roles:
+    - SaveConfig
+
+- name: Setup DHCP
+  hosts: DHCP01
+  gather_facts: false
+  roles:
+    - DHCP
+  tags:
+    - DHCP
+
+- name: setup default settings on Linux Servers
+  hosts: LinuxServers
+  gather_facts: false
+  become: yes
+  become_method: sudo
+  roles:
+    - LinuxServerSetup
+  tags:
+    - Linux
+
+- name: Setup Timezones on WIndows
+  hosts: WinServers
+  gather_facts: false
+  roles:
+    - WindowsTime
+  tags:
+    - WindowsTime

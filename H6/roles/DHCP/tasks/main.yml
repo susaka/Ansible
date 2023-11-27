@@ -1,0 +1,19 @@
+---
+
+- name: Generate powershell script
+  script: createPSscript.py
+  args:
+    executable: python3
+  run_once: true
+  delegate_to: 127.0.0.1
+  changed_when: false
+
+- name: copy created script to remote server
+  win_copy:
+    src: final_dhcp.ps1
+    dest: C:\Temp\createDHCPScopes.ps1
+
+- name: Run powershell script on DHCP01
+  win_shell: C:\Temp\createDHCPScopes.ps1
+  register: result
+  changed_when: result.stdout_lines[0] == 'True'

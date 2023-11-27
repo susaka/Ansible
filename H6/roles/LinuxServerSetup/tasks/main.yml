@@ -1,0 +1,116 @@
+---
+
+- name: apt-get update and upgrade
+  apt:
+    update_cache: yes
+    upgrade: safe
+    cache_valid_time: 86400
+
+- name: install NTP client
+  apt:
+    name: ntp
+    state: present
+
+- name: config NTP servers
+  lineinfile:
+    path: /etc/ntp.conf
+    regexp: "pool 0.ubuntu.pool.ntp.org iburst"
+    line: "{{ NTP_host }}"
+    state: present
+
+- name: remove unused NTP servers
+  lineinfile:
+    path: /etc/ntp.conf
+    regexp: "pool {{ item }}.ubuntu.pool.ntp.org iburst"
+    state: absent
+  loop:
+    - 1
+    - 2
+    - 3
+
+- name: enable and start NTP daemon
+  systemd:
+    name: ntp
+    enabled: yes
+    state: started
+
+- name: Installing stuff for domain joining
+  apt:
+    name:
+    - realmd
+    - sssd
+    - sssd-tools
+    - libnss-sss
+    - libpam-sss
+    - adcli
+    - samba-common-bin
+
+- name: check if domain joined
+  command: /bin/bash -c "/usr/sbin/realm list"
+  register: realm_list_results
+  changed_when: false
+
+- name: join domain if not joined
+  expect:
+    command: /bin/bash -c "/usr/sbin/realm join {{ domain }} --user={{ domainUser }}"
+    responses:
+      (?i)Password: "{{ domainPasword }}"  
+  ignore_errors: yes
+  when: realm_list_results.stdout == ""
+  become: true
+
+- name: edit sssd config
+  lineinfile:
+    path: /etc/sssd/sssd.conf
+    regexp: "use_fully_qualified_names = True"
+    line: "use_fully_qualified_names = False"
+    state: present
+
+- name: restart sssd daemon    
+  systemd:
+    name: sssd.service
+    daemon_reload: yes
+  changed_when: false
+
+- name: enable home dirs
+  lineinfile:
+    path: /etc/pam.d/common-session
+    line: session optional pam_mkhomedir.so skel=/etc/skel umask=077
+
+- name: enable sudo for domain admins
+  lineinfile:
+    path: /etc/sudoers.d/admins
+    line: "{{ item }}"
+    create: yes
+    state: present
+  loop:
+    - 'user ALL=(ALL) ALL'
+    - '%Domain\ Admins ALL=(ALL) ALL'
+
+- name: install syslog client if not present
+  apt:
+    name:
+    - rsyslog
+
+- name: setup syslog client for forwarding
+  blockinfile:
+    path: /etc/rsyslog.conf
+    marker: "#< The following is managed by ansible >#"
+    block: |
+      ##Enable sending of logs over UDP
+      *.* @{{ syslog_host }}:514
+      ##Enable sending of logs over TCP
+      *.* @@{{ syslog_host }}:514
+      ##Set disk queue when rsyslog server is down:
+      $ActionQueueFileName queue
+      $ActionQueueMaxDiskSpace 1g
+      $ActionQueueSaveOnShutdown on
+      $ActionQueueType LinkedList
+      $ActionResumeRetryCount -1
+  changed_when: false
+
+- name: restart syslog daemon
+  systemd:
+    name: rsyslog
+    daemon_reload: yes
+  changed_when: false

@@ -1,0 +1,49 @@
+$CurrentScopes = Get-DHCPserverV4Scope
+$changed = $false
+
+{% for key,value in scope1.vlans|dictsort %}
+{% set net_host = value.subnet | ipaddr('network') %}
+
+$subnet = "{{value.subnet}}"
+if ($CurrentScopes.ScopeID.IPAddressToString -eq "{{net_host}}" )
+{
+write-host "{{ net_host }}" is allready a scope
+}
+else
+{
+$name = "Vib_{{key}}"
+$startRange = $subnet.substring(0,$subnet.length-4) + "5"
+$slutrange = $subnet.substring(0,$subnet.length-4) + "254"
+$gateway = $subnet.substring(0,$subnet.length-4) + "1"
+
+Add-DhcpServerv4Scope -Name $name -StartRange $startRange -EndRange $slutrange -SubnetMask "255.255.255.0" -State Active
+Set-DHCPServerv4OptionValue -ScopeID "{{net_host}}" -DnsServer "10.255.0.10" -Router $gateway
+
+$changed = $true
+}
+{% endfor %}
+
+
+{% for key,value in scope2.vlans|dictsort %}
+{% set net_host = value.subnet | ipaddr('network') %}
+$subnet = "{{value.subnet}}"
+if ($CurrentScopes.ScopeID.IPAddressToString -eq "{{net_host}}" )
+{
+write-host "{{ net_host }}" is allready a scope
+}
+else
+{
+$name = "Ros_{{key}}"
+$startRange = $subnet.substring(0,$subnet.length-4) + "5"
+$slutrange = $subnet.substring(0,$subnet.length-4) + "254"
+$gateway = $subnet.substring(0,$subnet.length-4) + "1"
+
+Add-DhcpServerv4Scope -Name $name -StartRange $startRange -EndRange $slutrange -SubnetMask "255.255.255.0" -State Active
+Set-DHCPServerv4OptionValue -ScopeID "{{net_host}}" -DnsServer "10.255.0.10" -Router $gateway
+
+$changed = $true
+}
+{% endfor %}
+
+write-host $changed
+{# Inspiration hentet fra https://kontrolissues.net/2016/07/24/jinja2-and-powershell-automationish-microsoft-dhcp/ #}
