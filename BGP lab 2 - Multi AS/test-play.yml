@@ -1,0 +1,7 @@
+---
+
+- name: Save network config if changed
+  hosts: all
+  gather_Facts: false
+  ios_config:
+    save_when: modified
