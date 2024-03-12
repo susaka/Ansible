@@ -3,5 +3,6 @@
 - name: Save network config if changed
   hosts: all
   gather_facts: false
-  cisco.ios.ios_config:
-    save_when: modified
+  tasks:
+    ios_config:
+      save_when: modified
