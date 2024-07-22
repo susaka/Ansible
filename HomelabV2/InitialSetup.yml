@@ -1,0 +1,112 @@
+---
+
+- name: SSH key deployment
+  hosts: all
+  gather_facts: no
+  tasks:
+  - name: Insert SSH pubkey
+    authorized_key:
+      user: susaka
+      state: present
+      key: "{{ github_key_url }}"
+
+- name: Hardening
+  hosts: all
+  gather_facts: no
+  become: true
+  tasks:
+    - name: Install missing packages
+      apt:
+        name:
+          - fail2ban
+          - ufw
+          - rsyslog
+          - ntp
+        state: present
+    - name: Purge FTP, TELNET and Rlogin / Rsh services
+      apt:
+        name:
+          - xinetd
+          - nis
+          - yp-tools
+          - tftpd
+          - atftpd
+          - tftpd-hpa
+          - telnetd
+          - rsh-server
+          - rsh-redone-server
+        state: absent
+    - name: Initial Hardening - Disable root login
+      lineinfile:
+        path: /etc/ssh/sshd_config
+        state: present
+        regexp: 'PermitRootLogin'
+        line: PermitRootLogin no
+    - name: Initial Hardening - Setup fail2ban
+      blockinfile:
+        path: /etc/fail2ban/jail.local
+        block: |
+          [sshd]
+          enabled = true
+          port = 22
+          filter = sshd
+          logpath = /var/log/auth.log
+          maxretry = 5
+        create: true
+    - name: Initial Hardening - Configure local firewall
+      ufw:
+        rule: allow
+        name: OpenSSH
+        state: enabled
+
+- name: NTP settings
+  hosts: all
+  become: true
+  gather_facts: no
+  tasks:
+  - name: Config NTP servers
+    lineinfile:
+      path: /etc/ntp.conf
+      regexp: "pool 0.ubuntu.pool.ntp.org iburst"
+      line: "{{ ntp_server }}"
+      state: present
+  - name: Remove unused NTP servers
+    lineinfile:
+      path: /etc/ntp.conf
+      regexp: "pool {{ item }}.ubuntu.pool.ntp.org iburst"
+      state: absent
+    loop:
+      - 1
+      - 2
+      - 3
+  - name: Enable and start NTP daemon
+    systemd:
+      name: ntp
+      enabled: yes
+      state: started
+
+#- name: Syslog settings
+#  hosts: all
+#  become: true
+#  gather_facts: no
+#  tasks:
+#    - name: Configuration
+#      lineinfile:
+#        path: /etc/rsyslog.conf
+#        state: present
+#        line: "*.* @{{ syslog_server }}:514"
+#    - name: Restart service
+#      service:
+#        name: rsyslog
+#        state: restarted
+
+- name: Apt update & upgrade
+  hosts: all
+  become: true
+  gather_facts: no
+  tasks:
+  - name: Update and upgrade system
+    apt:
+      update_cache: true
+      upgrade: full
+      autoremove: true
