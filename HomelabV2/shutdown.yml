@@ -1,0 +1,8 @@
+- name: Shutdown hosts
+  hosts: all
+  gather_facts: true
+  become: true
+  tasks:
+    - name: shutdown hosts
+      community.general.shutdown:
+        delay: 15
